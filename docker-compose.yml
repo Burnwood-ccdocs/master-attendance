@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  attendance-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: attendance-tracker
+    restart: unless-stopped
+    environment:
+      # WebWork API Configuration
+      - WEBWORK_API_KEY=${WEBWORK_API_KEY}
+      - WEBWORK_API_USER=${WEBWORK_API_USER}
+      
+      # Google Sheets Configuration
+      - GOOGLE_SERVICE_ACCOUNT_FILE=${GOOGLE_SERVICE_ACCOUNT_FILE}
+      - GOOGLE_SHEET_ID=${GOOGLE_SHEET_ID}
+      
+      # Slack Configuration
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_CHANNEL_ID=${SLACK_CHANNEL_ID}
+      - SLACK_USER_ID=${SLACK_USER_ID}
+      
+      # Timezone
+      - TZ=America/New_York
+      
+      # Python Configuration
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount logs directory for persistence
+      - ./logs:/app/logs
+      
+      # Mount Google service account file if using local file
+      - ${GOOGLE_SERVICE_ACCOUNT_FILE:-./google-credentials.json}:/app/google-credentials.json:ro
+      
+      # Optional: Mount config files for easy updates
+      - ./config.py:/app/config.py:ro
+    ports:
+      # Expose port for health checks or monitoring (optional)
+      - "8000:8000"
+    # Health check is defined in Dockerfile
+    networks:
+      - attendance-network
+    depends_on: []
+    command: ["python", "main.py"]
+
+  # Optional: Add a simple web interface for monitoring (if needed)
+  # web-monitor:
+  #   image: nginx:alpine
+  #   container_name: attendance-monitor
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ./monitoring:/usr/share/nginx/html
+  #   networks:
+  #     - attendance-network
+  #   depends_on:
+  #     - attendance-tracker
+
+networks:
+  attendance-network:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local 
